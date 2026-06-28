@@ -1,0 +1,279 @@
+:root {
+  color-scheme: light;
+  --bg: #f5f7f4;
+  --text: #17201b;
+  --muted: #66736b;
+  --line: #dce4dc;
+  --panel: #ffffff;
+  --green: #1f7a5a;
+  --green-dark: #14543e;
+  --amber: #a86614;
+  --blue: #245c8f;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background: var(--bg);
+  color: var(--text);
+  font-family: Arial, "Microsoft YaHei", sans-serif;
+}
+
+.app {
+  width: min(1240px, calc(100vw - 32px));
+  margin: 0 auto;
+  padding: 24px 0;
+}
+
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 18px 0 22px;
+}
+
+h1,
+h2,
+p {
+  margin: 0;
+}
+
+h1 {
+  font-size: 26px;
+  line-height: 1.2;
+}
+
+h2 {
+  font-size: 16px;
+}
+
+#status,
+.panel-head span {
+  color: var(--muted);
+  font-size: 14px;
+  margin-top: 6px;
+}
+
+.actions,
+.panel-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.actions {
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+button {
+  border: 1px solid var(--line);
+  background: #fff;
+  color: var(--text);
+  min-height: 40px;
+  padding: 0 14px;
+  border-radius: 8px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+button:hover:not(:disabled) {
+  border-color: var(--green);
+}
+
+button:disabled {
+  cursor: not-allowed;
+  color: #a8b0aa;
+}
+
+button.primary {
+  background: var(--green);
+  border-color: var(--green);
+  color: #fff;
+}
+
+button.primary:hover:not(:disabled) {
+  background: var(--green-dark);
+}
+
+.grid,
+.question-area {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.panel {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 16px;
+  min-width: 0;
+}
+
+.settings-shell {
+  display: grid;
+  grid-template-columns: minmax(220px, 0.9fr) minmax(220px, 0.9fr) minmax(280px, 1.2fr);
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.settings-card {
+  display: grid;
+  gap: 10px;
+  align-content: start;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 14px;
+  min-width: 0;
+}
+
+.settings-title {
+  font-size: 15px;
+  font-weight: 800;
+}
+
+.settings-card label {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+
+.settings-card span {
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.settings-card input,
+.settings-card select {
+  width: 100%;
+  min-height: 40px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 0 12px;
+  color: var(--text);
+  font: inherit;
+  background: #fff;
+}
+
+.settings-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: end;
+}
+
+.panel-head {
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.dot {
+  width: 11px;
+  height: 11px;
+  border-radius: 99px;
+  background: #b8c2bb;
+}
+
+.dot.active {
+  background: #db3a34;
+  box-shadow: 0 0 0 6px rgba(219, 58, 52, 0.12);
+}
+
+.stream,
+.question,
+.answer {
+  min-height: 360px;
+  max-height: 56vh;
+  overflow: auto;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 14px;
+  line-height: 1.55;
+  background: #fbfcfb;
+  white-space: pre-wrap;
+}
+
+.translation {
+  font-size: 18px;
+}
+
+.question,
+.answer {
+  min-height: 180px;
+  max-height: 32vh;
+}
+
+.question {
+  border-color: rgba(168, 102, 20, 0.35);
+}
+
+.answer {
+  border-color: rgba(36, 92, 143, 0.28);
+}
+
+.empty {
+  color: var(--muted);
+}
+
+textarea {
+  display: block;
+  width: 100%;
+  min-height: 76px;
+  resize: vertical;
+  margin: 12px 0 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 12px;
+  font: inherit;
+}
+
+.entry {
+  padding-bottom: 12px;
+  margin-bottom: 12px;
+  border-bottom: 1px solid #eef2ee;
+}
+
+.entry:last-child {
+  border-bottom: 0;
+}
+
+.time {
+  color: var(--muted);
+  font-size: 12px;
+  margin-bottom: 4px;
+}
+
+@media (max-width: 860px) {
+  .topbar,
+  .settings-shell,
+  .grid,
+  .question-area {
+    grid-template-columns: 1fr;
+  }
+
+  .topbar {
+    display: grid;
+  }
+
+  .actions {
+    justify-content: stretch;
+  }
+
+  .actions button,
+  .settings-actions button {
+    flex: 1;
+  }
+
+  .stream {
+    min-height: 260px;
+  }
+}

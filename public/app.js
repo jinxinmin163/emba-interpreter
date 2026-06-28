@@ -1,0 +1,296 @@
+const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+
+const startBtn = document.querySelector('#startBtn');
+const stopBtn = document.querySelector('#stopBtn');
+const clearBtn = document.querySelector('#clearBtn');
+const manualBtn = document.querySelector('#manualBtn');
+const answerBtn = document.querySelector('#answerBtn');
+const saveSettingsBtn = document.querySelector('#saveSettingsBtn');
+const testTranslateBtn = document.querySelector('#testTranslateBtn');
+const testAnswerBtn = document.querySelector('#testAnswerBtn');
+const translateProviderInput = document.querySelector('#translateProviderInput');
+const answerProviderInput = document.querySelector('#answerProviderInput');
+const manualText = document.querySelector('#manualText');
+const apiKeyInput = document.querySelector('#apiKeyInput');
+const modelInput = document.querySelector('#modelInput');
+const answerModelInput = document.querySelector('#answerModelInput');
+const baseUrlInput = document.querySelector('#baseUrlInput');
+const ollamaUrlInput = document.querySelector('#ollamaUrlInput');
+const statusEl = document.querySelector('#status');
+const englishStream = document.querySelector('#englishStream');
+const translationStream = document.querySelector('#translationStream');
+const questionBox = document.querySelector('#questionBox');
+const answerBox = document.querySelector('#answerBox');
+const translateState = document.querySelector('#translateState');
+const answerState = document.querySelector('#answerState');
+const listeningDot = document.querySelector('#listeningDot');
+
+const settingsKey = 'emba-ai-settings';
+
+let recognition;
+let transcript = [];
+let translations = [];
+let lastQuestion = '';
+let shouldListen = false;
+let translating = false;
+let pendingQueue = Promise.resolve();
+
+const text = {
+  ready: 'Ready. Chrome or Edge is recommended.',
+  saved: 'Settings saved in this browser.',
+  testing: 'Testing AI connection...',
+  testOk: 'AI connection OK: ',
+  testFail: 'AI connection failed: ',
+  translating: 'Translating...',
+  translated: 'Updated',
+  translateFail: 'Failed',
+  noSpeech: 'Speech recognition is not supported. Use Chrome/Edge, or paste text manually.',
+  listening: 'Listening...',
+  stopped: 'Stopped.',
+  questionReady: 'Question detected. You can generate a class answer.',
+  canAnswer: 'Ready',
+  noQuestion: 'No question detected yet.',
+  answerHint: 'After a question is detected, a suggested classroom answer will appear here.',
+  generating: 'Generating...',
+  generated: 'Generated'
+};
+
+function nowLabel() {
+  return new Date().toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+}
+
+function loadSettings() {
+  const saved = JSON.parse(localStorage.getItem(settingsKey) || '{}');
+  translateProviderInput.value = saved.translateProvider || 'ollama';
+  answerProviderInput.value = saved.answerProvider || 'deepseek';
+  apiKeyInput.value = saved.apiKey || '';
+  modelInput.value = saved.translateModel || saved.model || 'qwen3:8b';
+  answerModelInput.value = saved.answerModel || 'deepseek-v4-flash';
+  baseUrlInput.value = saved.baseUrl || 'https://api.deepseek.com';
+  ollamaUrlInput.value = saved.ollamaUrl || 'http://127.0.0.1:11434';
+}
+
+function currentSettings() {
+  return {
+    translateProvider: translateProviderInput.value,
+    answerProvider: answerProviderInput.value,
+    apiKey: apiKeyInput.value.trim(),
+    translateModel: modelInput.value.trim() || 'qwen3:8b',
+    answerModel: answerModelInput.value.trim() || 'deepseek-v4-flash',
+    baseUrl: baseUrlInput.value.trim() || 'https://api.deepseek.com',
+    ollamaUrl: ollamaUrlInput.value.trim() || 'http://127.0.0.1:11434'
+  };
+}
+
+function saveSettings() {
+  localStorage.setItem(settingsKey, JSON.stringify(currentSettings()));
+  setStatus(text.saved);
+}
+
+function addEntry(target, value) {
+  target.classList.remove('empty');
+  const item = document.createElement('div');
+  item.className = 'entry';
+  item.innerHTML = `<div class="time">${nowLabel()}</div><div></div>`;
+  item.lastElementChild.textContent = value;
+  target.appendChild(item);
+  target.scrollTop = target.scrollHeight;
+}
+
+function setStatus(value) {
+  statusEl.textContent = value;
+}
+
+function fullContext() {
+  return transcript.slice(-40).join('\n');
+}
+
+function looksLikeQuestion(value) {
+  return /(\?|what|why|how|when|where|who|which|do you|can you|could you|would you|should we|any thoughts|what do you think)/i.test(value);
+}
+
+async function postJson(url, body) {
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ ...body, ...currentSettings() })
+  });
+  const data = await response.json();
+  if (!response.ok) throw new Error(data.error || 'Request failed.');
+  return data;
+}
+
+function queueTranslation(value) {
+  pendingQueue = pendingQueue.then(async () => {
+    translating = true;
+    translateState.textContent = text.translating;
+    try {
+      const data = await postJson('/api/translate', { text: value, context: fullContext() });
+      translations.push(data.translation);
+      addEntry(translationStream, data.translation);
+      translateState.textContent = text.translated;
+    } catch (error) {
+      translateState.textContent = text.translateFail;
+      addEntry(translationStream, error.message);
+    } finally {
+      translating = false;
+    }
+  });
+}
+
+function processFinalText(value) {
+  const clean = value.trim();
+  if (!clean) return;
+
+  transcript.push(clean);
+  addEntry(englishStream, clean);
+  queueTranslation(clean);
+
+  if (looksLikeQuestion(clean)) {
+    lastQuestion = clean;
+    questionBox.classList.remove('empty');
+    questionBox.textContent = clean;
+    answerBox.classList.add('empty');
+    answerBox.textContent = text.questionReady;
+    answerBtn.disabled = false;
+    answerState.textContent = text.canAnswer;
+  }
+}
+
+function setupRecognition() {
+  if (!SpeechRecognition) {
+    setStatus(text.noSpeech);
+    startBtn.disabled = true;
+    return;
+  }
+
+  recognition = new SpeechRecognition();
+  recognition.lang = 'en-US';
+  recognition.continuous = true;
+  recognition.interimResults = true;
+
+  recognition.onstart = () => {
+    setStatus(text.listening);
+    listeningDot.classList.add('active');
+  };
+
+  recognition.onerror = (event) => {
+    setStatus(`Speech recognition error: ${event.error}`);
+  };
+
+  recognition.onend = () => {
+    listeningDot.classList.remove('active');
+    if (shouldListen) recognition.start();
+    else setStatus(text.stopped);
+  };
+
+  recognition.onresult = (event) => {
+    for (let i = event.resultIndex; i < event.results.length; i += 1) {
+      const result = event.results[i];
+      if (result.isFinal) processFinalText(result[0].transcript);
+    }
+  };
+}
+
+saveSettingsBtn.addEventListener('click', saveSettings);
+
+translateProviderInput.addEventListener('change', () => {
+  if (translateProviderInput.value === 'ollama' && modelInput.value.startsWith('deepseek')) {
+    modelInput.value = 'qwen3:8b';
+  }
+  if (translateProviderInput.value === 'deepseek' && modelInput.value.startsWith('qwen')) {
+    modelInput.value = 'deepseek-v4-flash';
+  }
+});
+
+answerProviderInput.addEventListener('change', () => {
+  if (answerProviderInput.value === 'ollama' && answerModelInput.value.startsWith('deepseek')) {
+    answerModelInput.value = 'qwen3:8b';
+  }
+  if (answerProviderInput.value === 'deepseek' && answerModelInput.value.startsWith('qwen')) {
+    answerModelInput.value = 'deepseek-v4-flash';
+  }
+});
+
+testTranslateBtn.addEventListener('click', async () => {
+  saveSettings();
+  testTranslateBtn.disabled = true;
+  setStatus('Testing interpreter model...');
+  try {
+    const data = await postJson('/api/test-provider', { target: 'translate' });
+    setStatus(`Interpreter model OK: ${data.message}`);
+  } catch (error) {
+    setStatus(`Interpreter model failed: ${error.message}`);
+  } finally {
+    testTranslateBtn.disabled = false;
+  }
+});
+
+testAnswerBtn.addEventListener('click', async () => {
+  saveSettings();
+  testAnswerBtn.disabled = true;
+  setStatus('Testing answer model...');
+  try {
+    const data = await postJson('/api/test-provider', { target: 'answer' });
+    setStatus(`Answer model OK: ${data.message}`);
+  } catch (error) {
+    setStatus(`Answer model failed: ${error.message}`);
+  } finally {
+    testAnswerBtn.disabled = false;
+  }
+});
+
+startBtn.addEventListener('click', () => {
+  shouldListen = true;
+  startBtn.disabled = true;
+  stopBtn.disabled = false;
+  recognition.start();
+});
+
+stopBtn.addEventListener('click', () => {
+  shouldListen = false;
+  startBtn.disabled = false;
+  stopBtn.disabled = true;
+  recognition.stop();
+});
+
+clearBtn.addEventListener('click', () => {
+  transcript = [];
+  translations = [];
+  lastQuestion = '';
+  englishStream.textContent = '';
+  translationStream.textContent = '';
+  questionBox.className = 'question empty';
+  questionBox.textContent = text.noQuestion;
+  answerBox.className = 'answer empty';
+  answerBox.textContent = text.answerHint;
+  answerBtn.disabled = true;
+  translateState.textContent = translating ? text.translating : 'Idle';
+  answerState.textContent = 'Idle';
+});
+
+manualBtn.addEventListener('click', () => {
+  processFinalText(manualText.value);
+  manualText.value = '';
+});
+
+answerBtn.addEventListener('click', async () => {
+  if (!lastQuestion) return;
+  answerBtn.disabled = true;
+  answerState.textContent = text.generating;
+  answerBox.classList.remove('empty');
+  answerBox.textContent = text.generating;
+  try {
+    const data = await postJson('/api/answer', { question: lastQuestion, context: fullContext() });
+    answerBox.textContent = data.answer;
+    answerState.textContent = text.generated;
+  } catch (error) {
+    answerBox.textContent = error.message;
+    answerState.textContent = text.translateFail;
+  } finally {
+    answerBtn.disabled = false;
+  }
+});
+
+loadSettings();
+setupRecognition();

@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>EMBA Live Interpreter</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <main class="app">
+      <section class="topbar">
+        <div>
+          <h1>EMBA Live Interpreter</h1>
+          <p id="status">&#20934;&#22791;&#23601;&#32490;&#12290;&#24314;&#35758;&#20351;&#29992; Chrome &#25110; Edge&#12290;</p>
+        </div>
+        <div class="actions">
+          <button id="startBtn" class="primary">&#24320;&#22987;&#21548;&#35838;</button>
+          <button id="stopBtn" disabled>&#20572;&#27490;</button>
+          <button id="clearBtn">&#28165;&#31354;</button>
+        </div>
+      </section>
+
+      <section class="settings-shell" aria-label="AI settings">
+        <div class="settings-card">
+          <div class="settings-title">&#20256;&#35793;&#27169;&#22411;</div>
+          <label>
+            <span>&#20351;&#29992;</span>
+            <select id="translateProviderInput">
+              <option value="ollama" selected>&#26412;&#22320; Ollama</option>
+              <option value="deepseek">DeepSeek</option>
+            </select>
+          </label>
+          <label>
+            <span>&#27169;&#22411;</span>
+            <input id="modelInput" type="text" value="qwen3:8b" />
+          </label>
+          <button id="testTranslateBtn">&#27979;&#35797;&#20256;&#35793;</button>
+        </div>
+
+        <div class="settings-card">
+          <div class="settings-title">&#22238;&#31572;&#27169;&#22411;</div>
+          <label>
+            <span>&#20351;&#29992;</span>
+            <select id="answerProviderInput">
+              <option value="ollama">&#26412;&#22320; Ollama</option>
+              <option value="deepseek" selected>DeepSeek</option>
+            </select>
+          </label>
+          <label>
+            <span>&#27169;&#22411;</span>
+            <input id="answerModelInput" type="text" value="deepseek-v4-flash" />
+          </label>
+          <button id="testAnswerBtn">&#27979;&#35797;&#22238;&#31572;</button>
+        </div>
+
+        <div class="settings-card shared-settings">
+          <div class="settings-title">&#36830;&#25509;&#35774;&#32622;</div>
+          <label>
+            <span>Ollama &#22320;&#22336;</span>
+            <input id="ollamaUrlInput" type="url" value="http://127.0.0.1:11434" />
+          </label>
+          <label>
+            <span>DeepSeek API key</span>
+            <input id="apiKeyInput" type="password" autocomplete="off" placeholder="sk-..." />
+          </label>
+          <label>
+            <span>DeepSeek &#25509;&#21475;&#22320;&#22336;</span>
+            <input id="baseUrlInput" type="url" value="https://api.deepseek.com" />
+          </label>
+          <div class="settings-actions">
+            <button id="saveSettingsBtn">&#20445;&#23384;&#35774;&#32622;</button>
+          </div>
+        </div>
+      </section>
+
+      <section class="grid">
+        <article class="panel">
+          <div class="panel-head">
+            <h2>&#33521;&#25991;&#21407;&#25991;</h2>
+            <span id="listeningDot" class="dot"></span>
+          </div>
+          <div id="englishStream" class="stream"></div>
+          <textarea id="manualText" placeholder="&#20063;&#21487;&#20197;&#25163;&#21160;&#31896;&#36148;&#32769;&#24072;&#21018;&#35828;&#30340;&#19968;&#21477;&#35805;..."></textarea>
+          <button id="manualBtn">&#32763;&#35793;&#36825;&#21477;</button>
+        </article>
+
+        <article class="panel">
+          <div class="panel-head">
+            <h2>&#20013;&#25991;&#20256;&#35793;</h2>
+            <span id="translateState">&#24453;&#24320;&#22987;</span>
+          </div>
+          <div id="translationStream" class="stream translation"></div>
+        </article>
+      </section>
+
+      <section class="question-area">
+        <article class="panel">
+          <div class="panel-head">
+            <h2>&#32769;&#24072;&#30340;&#38382;&#39064;</h2>
+            <button id="answerBtn" disabled>&#29983;&#25104;&#22238;&#31572;</button>
+          </div>
+          <div id="questionBox" class="question empty">&#36824;&#27809;&#26377;&#35782;&#21035;&#21040;&#38382;&#39064;&#12290;</div>
+        </article>
+
+        <article class="panel">
+          <div class="panel-head">
+            <h2>&#21487;&#21442;&#32771;&#22238;&#31572;</h2>
+            <span id="answerState">&#24453;&#29983;&#25104;</span>
+          </div>
+          <div id="answerBox" class="answer empty">&#35782;&#21035;&#21040;&#38382;&#39064;&#21518;&#65292;&#36825;&#37324;&#20250;&#29983;&#25104;&#36866;&#21512;&#35838;&#22530;&#21457;&#35328;&#30340;&#22238;&#31572;&#12290;</div>
+        </article>
+      </section>
+    </main>
+    <script src="/app.js"></script>
+  </body>
+</html>
