@@ -1,0 +1,11 @@
+services:
+  emba-interpreter:
+    build: .
+    container_name: emba-interpreter
+    restart: unless-stopped
+    ports:
+      - "4321:4321"
+    env_file:
+      - .env
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
