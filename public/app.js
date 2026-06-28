@@ -6,16 +6,9 @@ const clearBtn = document.querySelector('#clearBtn');
 const manualBtn = document.querySelector('#manualBtn');
 const answerBtn = document.querySelector('#answerBtn');
 const saveSettingsBtn = document.querySelector('#saveSettingsBtn');
-const testTranslateBtn = document.querySelector('#testTranslateBtn');
-const testAnswerBtn = document.querySelector('#testAnswerBtn');
-const translateProviderInput = document.querySelector('#translateProviderInput');
-const answerProviderInput = document.querySelector('#answerProviderInput');
+const testProviderBtn = document.querySelector('#testProviderBtn');
 const manualText = document.querySelector('#manualText');
-const apiKeyInput = document.querySelector('#apiKeyInput');
 const modelInput = document.querySelector('#modelInput');
-const answerModelInput = document.querySelector('#answerModelInput');
-const baseUrlInput = document.querySelector('#baseUrlInput');
-const ollamaUrlInput = document.querySelector('#ollamaUrlInput');
 const statusEl = document.querySelector('#status');
 const englishStream = document.querySelector('#englishStream');
 const translationStream = document.querySelector('#translationStream');
@@ -25,7 +18,7 @@ const translateState = document.querySelector('#translateState');
 const answerState = document.querySelector('#answerState');
 const listeningDot = document.querySelector('#listeningDot');
 
-const settingsKey = 'emba-ai-settings';
+const settingsKey = 'emba-deepseek-settings';
 
 let recognition;
 let transcript = [];
@@ -36,11 +29,7 @@ let translating = false;
 let pendingQueue = Promise.resolve();
 
 const text = {
-  ready: 'Ready. Chrome or Edge is recommended.',
   saved: 'Settings saved in this browser.',
-  testing: 'Testing AI connection...',
-  testOk: 'AI connection OK: ',
-  testFail: 'AI connection failed: ',
   translating: 'Translating...',
   translated: 'Updated',
   translateFail: 'Failed',
@@ -61,24 +50,12 @@ function nowLabel() {
 
 function loadSettings() {
   const saved = JSON.parse(localStorage.getItem(settingsKey) || '{}');
-  translateProviderInput.value = saved.translateProvider || 'ollama';
-  answerProviderInput.value = saved.answerProvider || 'deepseek';
-  apiKeyInput.value = saved.apiKey || '';
-  modelInput.value = saved.translateModel || saved.model || 'qwen3:8b';
-  answerModelInput.value = saved.answerModel || 'deepseek-v4-flash';
-  baseUrlInput.value = saved.baseUrl || 'https://api.deepseek.com';
-  ollamaUrlInput.value = saved.ollamaUrl || 'http://127.0.0.1:11434';
+  modelInput.value = saved.model || 'deepseek-v4-flash';
 }
 
 function currentSettings() {
   return {
-    translateProvider: translateProviderInput.value,
-    answerProvider: answerProviderInput.value,
-    apiKey: apiKeyInput.value.trim(),
-    translateModel: modelInput.value.trim() || 'qwen3:8b',
-    answerModel: answerModelInput.value.trim() || 'deepseek-v4-flash',
-    baseUrl: baseUrlInput.value.trim() || 'https://api.deepseek.com',
-    ollamaUrl: ollamaUrlInput.value.trim() || 'http://127.0.0.1:11434'
+    model: modelInput.value.trim() || 'deepseek-v4-flash'
   };
 }
 
@@ -194,49 +171,17 @@ function setupRecognition() {
 
 saveSettingsBtn.addEventListener('click', saveSettings);
 
-translateProviderInput.addEventListener('change', () => {
-  if (translateProviderInput.value === 'ollama' && modelInput.value.startsWith('deepseek')) {
-    modelInput.value = 'qwen3:8b';
-  }
-  if (translateProviderInput.value === 'deepseek' && modelInput.value.startsWith('qwen')) {
-    modelInput.value = 'deepseek-v4-flash';
-  }
-});
-
-answerProviderInput.addEventListener('change', () => {
-  if (answerProviderInput.value === 'ollama' && answerModelInput.value.startsWith('deepseek')) {
-    answerModelInput.value = 'qwen3:8b';
-  }
-  if (answerProviderInput.value === 'deepseek' && answerModelInput.value.startsWith('qwen')) {
-    answerModelInput.value = 'deepseek-v4-flash';
-  }
-});
-
-testTranslateBtn.addEventListener('click', async () => {
+testProviderBtn.addEventListener('click', async () => {
   saveSettings();
-  testTranslateBtn.disabled = true;
-  setStatus('Testing interpreter model...');
+  testProviderBtn.disabled = true;
+  setStatus('Testing DeepSeek connection...');
   try {
-    const data = await postJson('/api/test-provider', { target: 'translate' });
-    setStatus(`Interpreter model OK: ${data.message}`);
+    const data = await postJson('/api/test-provider', {});
+    setStatus(`DeepSeek connection OK: ${data.message}`);
   } catch (error) {
-    setStatus(`Interpreter model failed: ${error.message}`);
+    setStatus(`DeepSeek connection failed: ${error.message}`);
   } finally {
-    testTranslateBtn.disabled = false;
-  }
-});
-
-testAnswerBtn.addEventListener('click', async () => {
-  saveSettings();
-  testAnswerBtn.disabled = true;
-  setStatus('Testing answer model...');
-  try {
-    const data = await postJson('/api/test-provider', { target: 'answer' });
-    setStatus(`Answer model OK: ${data.message}`);
-  } catch (error) {
-    setStatus(`Answer model failed: ${error.message}`);
-  } finally {
-    testAnswerBtn.disabled = false;
+    testProviderBtn.disabled = false;
   }
 });
 

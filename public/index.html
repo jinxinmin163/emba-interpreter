@@ -2,14 +2,14 @@
 <html lang="zh-CN">
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <title>EMBA Live Interpreter</title>
     <link rel="stylesheet" href="/styles.css" />
   </head>
   <body>
     <main class="app">
       <section class="topbar">
-        <div>
+        <div class="brand">
           <h1>EMBA Live Interpreter</h1>
           <p id="status">&#20934;&#22791;&#23601;&#32490;&#12290;&#24314;&#35758;&#20351;&#29992; Chrome &#25110; Edge&#12290;</p>
         </div>
@@ -20,55 +20,16 @@
         </div>
       </section>
 
-      <section class="settings-shell" aria-label="AI settings">
+      <section class="settings-shell" aria-label="DeepSeek settings">
         <div class="settings-card">
-          <div class="settings-title">&#20256;&#35793;&#27169;&#22411;</div>
-          <label>
-            <span>&#20351;&#29992;</span>
-            <select id="translateProviderInput">
-              <option value="ollama" selected>&#26412;&#22320; Ollama</option>
-              <option value="deepseek">DeepSeek</option>
-            </select>
-          </label>
+          <div class="settings-title">DeepSeek</div>
           <label>
             <span>&#27169;&#22411;</span>
-            <input id="modelInput" type="text" value="qwen3:8b" />
-          </label>
-          <button id="testTranslateBtn">&#27979;&#35797;&#20256;&#35793;</button>
-        </div>
-
-        <div class="settings-card">
-          <div class="settings-title">&#22238;&#31572;&#27169;&#22411;</div>
-          <label>
-            <span>&#20351;&#29992;</span>
-            <select id="answerProviderInput">
-              <option value="ollama">&#26412;&#22320; Ollama</option>
-              <option value="deepseek" selected>DeepSeek</option>
-            </select>
-          </label>
-          <label>
-            <span>&#27169;&#22411;</span>
-            <input id="answerModelInput" type="text" value="deepseek-v4-flash" />
-          </label>
-          <button id="testAnswerBtn">&#27979;&#35797;&#22238;&#31572;</button>
-        </div>
-
-        <div class="settings-card shared-settings">
-          <div class="settings-title">&#36830;&#25509;&#35774;&#32622;</div>
-          <label>
-            <span>Ollama &#22320;&#22336;</span>
-            <input id="ollamaUrlInput" type="url" value="http://127.0.0.1:11434" />
-          </label>
-          <label>
-            <span>DeepSeek API key</span>
-            <input id="apiKeyInput" type="password" autocomplete="off" placeholder="sk-..." />
-          </label>
-          <label>
-            <span>DeepSeek &#25509;&#21475;&#22320;&#22336;</span>
-            <input id="baseUrlInput" type="url" value="https://api.deepseek.com" />
+            <input id="modelInput" type="text" value="deepseek-v4-flash" />
           </label>
           <div class="settings-actions">
             <button id="saveSettingsBtn">&#20445;&#23384;&#35774;&#32622;</button>
+            <button id="testProviderBtn">&#27979;&#35797;&#36830;&#25509;</button>
           </div>
         </div>
       </section>

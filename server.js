@@ -11,12 +11,8 @@ const app = express();
 const port = Number(process.env.PORT || 4321);
 
 const defaults = {
-  translateProvider: process.env.TRANSLATE_PROVIDER || 'ollama',
-  answerProvider: process.env.ANSWER_PROVIDER || 'deepseek',
-  deepseekBaseUrl: process.env.DEEPSEEK_BASE_URL || 'https://api.deepseek.com',
-  deepseekModel: process.env.DEEPSEEK_MODEL || 'deepseek-v4-flash',
-  ollamaUrl: process.env.OLLAMA_URL || 'http://127.0.0.1:11434',
-  ollamaModel: process.env.OLLAMA_MODEL || 'qwen3:8b'
+  baseUrl: process.env.DEEPSEEK_BASE_URL || 'https://api.deepseek.com',
+  model: process.env.DEEPSEEK_MODEL || 'deepseek-v4-flash'
 };
 
 app.use(express.json({ limit: '1mb' }));
@@ -24,76 +20,30 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 function readSettings(req) {
   return {
-    apiKey: req.body?.apiKey || process.env.DEEPSEEK_API_KEY,
-    baseUrl: req.body?.baseUrl || defaults.deepseekBaseUrl,
-    translateProvider: req.body?.translateProvider || defaults.translateProvider,
-    translateModel: req.body?.translateModel || defaults.ollamaModel,
-    answerProvider: req.body?.answerProvider || defaults.answerProvider,
-    answerModel: req.body?.answerModel || defaults.deepseekModel,
-    ollamaUrl: req.body?.ollamaUrl || defaults.ollamaUrl
+    apiKey: process.env.DEEPSEEK_API_KEY,
+    baseURL: process.env.DEEPSEEK_BASE_URL || defaults.baseUrl,
+    model: req.body?.model || process.env.DEEPSEEK_MODEL || defaults.model
   };
 }
 
-async function callDeepSeek(settings, model, messages, temperature) {
+async function callDeepSeek(req, messages, temperature) {
+  const settings = readSettings(req);
   if (!settings.apiKey || settings.apiKey === 'your_api_key_here') {
-    throw new Error('Please enter a DeepSeek API key.');
+    throw new Error('DeepSeek API key is not configured on the server.');
   }
 
   const client = new OpenAI({
     apiKey: settings.apiKey,
-    baseURL: settings.baseUrl
+    baseURL: settings.baseURL
   });
 
   const response = await client.chat.completions.create({
-    model,
+    model: settings.model,
     messages,
     temperature
   });
 
   return response.choices?.[0]?.message?.content?.trim() || '';
-}
-
-async function callOllama(settings, model, messages, temperature) {
-  let response;
-  try {
-    response = await fetch(`${settings.ollamaUrl.replace(/\/$/, '')}/api/chat`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model,
-        messages,
-        stream: false,
-        options: { temperature }
-      })
-    });
-  } catch {
-    throw new Error(
-      `Cannot connect to Ollama at ${settings.ollamaUrl}. Please install/start Ollama and run: ollama pull ${model}`
-    );
-  }
-
-  const data = await response.json().catch(() => ({}));
-  if (!response.ok) {
-    const missingModel = typeof data.error === 'string' && data.error.toLowerCase().includes('not found');
-    if (missingModel) {
-      throw new Error(`Ollama model ${model} is not installed. Please run: ollama pull ${model}`);
-    }
-    throw new Error(data.error || `Ollama request failed with status ${response.status}.`);
-  }
-
-  return data.message?.content?.trim() || '';
-}
-
-async function callTaskModel(req, task, messages, temperature) {
-  const settings = readSettings(req);
-  const provider = task === 'answer' ? settings.answerProvider : settings.translateProvider;
-  const model = task === 'answer' ? settings.answerModel : settings.translateModel;
-
-  if (provider === 'deepseek') {
-    return callDeepSeek(settings, model, messages, temperature);
-  }
-
-  return callOllama(settings, model, messages, temperature);
 }
 
 app.post('/api/translate', async (req, res) => {
@@ -103,9 +53,8 @@ app.post('/api/translate', async (req, res) => {
   }
 
   try {
-    const translation = await callTaskModel(
+    const translation = await callDeepSeek(
       req,
-      'translate',
       [
         {
           role: 'system',
@@ -133,9 +82,8 @@ app.post('/api/answer', async (req, res) => {
   }
 
   try {
-    const answer = await callTaskModel(
+    const answer = await callDeepSeek(
       req,
-      'answer',
       [
         {
           role: 'system',
@@ -159,10 +107,8 @@ app.post('/api/answer', async (req, res) => {
 
 app.post('/api/test-provider', async (req, res) => {
   try {
-    const target = req.body?.target === 'answer' ? 'answer' : 'translate';
-    const message = await callTaskModel(
+    const message = await callDeepSeek(
       req,
-      target,
       [{ role: 'user', content: 'Reply with OK only.' }],
       0
     );
