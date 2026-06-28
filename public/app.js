@@ -27,6 +27,7 @@ let lastQuestion = '';
 let shouldListen = false;
 let translating = false;
 let pendingQueue = Promise.resolve();
+let recentFinals = [];
 
 const text = {
   saved: 'Settings saved in this browser.',
@@ -86,6 +87,26 @@ function looksLikeQuestion(value) {
   return /(\?|what|why|how|when|where|who|which|do you|can you|could you|would you|should we|any thoughts|what do you think)/i.test(value);
 }
 
+function normalizeSpeech(value) {
+  return value
+    .toLowerCase()
+    .replace(/[^\p{L}\p{N}\s]/gu, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function isRepeatedFinal(value) {
+  const normalized = normalizeSpeech(value);
+  if (!normalized) return true;
+
+  const now = Date.now();
+  recentFinals = recentFinals.filter((item) => now - item.time < 12000);
+
+  const repeated = recentFinals.some((item) => item.normalized === normalized);
+  if (!repeated) recentFinals.push({ normalized, time: now });
+  return repeated;
+}
+
 async function postJson(url, body) {
   const response = await fetch(url, {
     method: 'POST',
@@ -115,9 +136,10 @@ function queueTranslation(value) {
   });
 }
 
-function processFinalText(value) {
+function processFinalText(value, options = {}) {
   const clean = value.trim();
   if (!clean) return;
+  if (options.dedupe && isRepeatedFinal(clean)) return;
 
   transcript.push(clean);
   addEntry(englishStream, clean);
@@ -164,7 +186,7 @@ function setupRecognition() {
   recognition.onresult = (event) => {
     for (let i = event.resultIndex; i < event.results.length; i += 1) {
       const result = event.results[i];
-      if (result.isFinal) processFinalText(result[0].transcript);
+      if (result.isFinal) processFinalText(result[0].transcript, { dedupe: true });
     }
   };
 }
@@ -203,6 +225,7 @@ clearBtn.addEventListener('click', () => {
   transcript = [];
   translations = [];
   lastQuestion = '';
+  recentFinals = [];
   englishStream.textContent = '';
   translationStream.textContent = '';
   questionBox.className = 'question empty';
