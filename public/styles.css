@@ -308,11 +308,13 @@ textarea {
   }
 
   .panel-head button,
-  .panel-head span {
+  .panel-head span:not(.dot) {
     width: 100%;
   }
 
   .dot {
+    align-self: flex-start;
+    flex: 0 0 auto;
     width: 14px;
     height: 14px;
   }
